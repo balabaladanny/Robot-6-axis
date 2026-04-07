@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
+  <POU Name="MAIN" Id="{5960d668-49ab-4216-b7bf-2f3f94808944}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+    HMI_PowerOn      : BOOL := FALSE;
+
+    HMI_Axis1Ready   : BOOL;
+    HMI_Axis2Ready   : BOOL;
+    HMI_Axis3Ready   : BOOL;
+    HMI_Axis4Ready   : BOOL;
+
+    HMI_Axis1Error   : BOOL;
+    HMI_Axis2Error   : BOOL;
+    HMI_Axis3Error   : BOOL;
+    HMI_Axis4Error   : BOOL;
+
+    HMI_ActPos1      : LREAL;
+    HMI_ActPos2      : LREAL;
+    HMI_ActPos3      : LREAL;
+    HMI_ActPos4      : LREAL;
+
+    fbPower1         : MC_Power;
+    fbPower2         : MC_Power;
+    fbPower3         : MC_Power;
+    fbPower4         : MC_Power;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbPower1(
+    Axis := GVL_Axes.Axis1,
+    Enable := HMI_PowerOn,
+    Enable_Positive := TRUE,
+    Enable_Negative := TRUE
+);
+
+fbPower2(
+    Axis := GVL_Axes.Axis2,
+    Enable := HMI_PowerOn,
+    Enable_Positive := TRUE,
+    Enable_Negative := TRUE
+);
+
+fbPower3(
+    Axis := GVL_Axes.Axis3,
+    Enable := HMI_PowerOn,
+    Enable_Positive := TRUE,
+    Enable_Negative := TRUE
+);
+
+fbPower4(
+    Axis := GVL_Axes.Axis4,
+    Enable := HMI_PowerOn,
+    Enable_Positive := TRUE,
+    Enable_Negative := TRUE
+);
+
+HMI_Axis1Ready := fbPower1.Status;
+HMI_Axis2Ready := fbPower2.Status;
+HMI_Axis3Ready := fbPower3.Status;
+HMI_Axis4Ready := fbPower4.Status;
+
+HMI_Axis1Error := fbPower1.Error;
+HMI_Axis2Error := fbPower2.Error;
+HMI_Axis3Error := fbPower3.Error;
+HMI_Axis4Error := fbPower4.Error;
+
+HMI_ActPos1 := GVL_Axes.Axis1.NcToPlc.ActPos;
+HMI_ActPos2 := GVL_Axes.Axis2.NcToPlc.ActPos;
+HMI_ActPos3 := GVL_Axes.Axis3.NcToPlc.ActPos;
+HMI_ActPos4 := GVL_Axes.Axis4.NcToPlc.ActPos;]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="242" Count="40" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
