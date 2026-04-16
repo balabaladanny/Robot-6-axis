@@ -6,6 +6,8 @@
     Axis2 : AXIS_REF;
     Axis3 : AXIS_REF;
     Axis4 : AXIS_REF;
+    Axis5 : AXIS_REF;
+    Axis6 : AXIS_REF;
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>

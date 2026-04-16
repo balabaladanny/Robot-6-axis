@@ -5,72 +5,107 @@
 VAR
     HMI_PowerOn      : BOOL := FALSE;
 
+    HMI_TargetPos1   : LREAL := 0;
+    HMI_TargetPos2   : LREAL := 0;
+    HMI_TargetPos3   : LREAL := 0;
+    HMI_TargetPos4   : LREAL := 0;
+    HMI_TargetPos5   : LREAL := 0;
+    HMI_TargetPos6   : LREAL := 0;
+
+    HMI_MoveCmd1     : BOOL := FALSE;
+    HMI_MoveCmd2     : BOOL := FALSE;
+    HMI_MoveCmd3     : BOOL := FALSE;
+    HMI_MoveCmd4     : BOOL := FALSE;
+    HMI_MoveCmd5     : BOOL := FALSE;
+    HMI_MoveCmd6     : BOOL := FALSE;
+
     HMI_Axis1Ready   : BOOL;
     HMI_Axis2Ready   : BOOL;
     HMI_Axis3Ready   : BOOL;
     HMI_Axis4Ready   : BOOL;
+    HMI_Axis5Ready   : BOOL;
+    HMI_Axis6Ready   : BOOL;
 
     HMI_Axis1Error   : BOOL;
     HMI_Axis2Error   : BOOL;
     HMI_Axis3Error   : BOOL;
     HMI_Axis4Error   : BOOL;
+    HMI_Axis5Error   : BOOL;
+    HMI_Axis6Error   : BOOL;
 
     HMI_ActPos1      : LREAL;
     HMI_ActPos2      : LREAL;
     HMI_ActPos3      : LREAL;
     HMI_ActPos4      : LREAL;
+    HMI_ActPos5      : LREAL;
+    HMI_ActPos6      : LREAL;
 
     fbPower1         : MC_Power;
     fbPower2         : MC_Power;
     fbPower3         : MC_Power;
     fbPower4         : MC_Power;
+    fbPower5         : MC_Power;
+    fbPower6         : MC_Power;
+
+    fbMove1          : MC_MoveAbsolute;
+    fbMove2          : MC_MoveAbsolute;
+    fbMove3          : MC_MoveAbsolute;
+    fbMove4          : MC_MoveAbsolute;
+    fbMove5          : MC_MoveAbsolute;
+    fbMove6          : MC_MoveAbsolute;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[fbPower1(
-    Axis := GVL_Axes.Axis1,
-    Enable := HMI_PowerOn,
-    Enable_Positive := TRUE,
-    Enable_Negative := TRUE
-);
-
-fbPower2(
-    Axis := GVL_Axes.Axis2,
-    Enable := HMI_PowerOn,
-    Enable_Positive := TRUE,
-    Enable_Negative := TRUE
-);
-
-fbPower3(
-    Axis := GVL_Axes.Axis3,
-    Enable := HMI_PowerOn,
-    Enable_Positive := TRUE,
-    Enable_Negative := TRUE
-);
-
-fbPower4(
-    Axis := GVL_Axes.Axis4,
-    Enable := HMI_PowerOn,
-    Enable_Positive := TRUE,
-    Enable_Negative := TRUE
-);
+      <ST><![CDATA[(* ── MC_Power ─────────────────────────────────────────────────── *)
+fbPower1(Axis := GVL_Axes.Axis1, Enable := HMI_PowerOn, Enable_Positive := HMI_PowerOn, Enable_Negative := HMI_PowerOn);
+fbPower2(Axis := GVL_Axes.Axis2, Enable := HMI_PowerOn, Enable_Positive := HMI_PowerOn, Enable_Negative := HMI_PowerOn);
+fbPower3(Axis := GVL_Axes.Axis3, Enable := HMI_PowerOn, Enable_Positive := HMI_PowerOn, Enable_Negative := HMI_PowerOn);
+fbPower4(Axis := GVL_Axes.Axis4, Enable := HMI_PowerOn, Enable_Positive := HMI_PowerOn, Enable_Negative := HMI_PowerOn);
+fbPower5(Axis := GVL_Axes.Axis5, Enable := HMI_PowerOn, Enable_Positive := HMI_PowerOn, Enable_Negative := HMI_PowerOn);
+fbPower6(Axis := GVL_Axes.Axis6, Enable := HMI_PowerOn, Enable_Positive := HMI_PowerOn, Enable_Negative := HMI_PowerOn);
 
 HMI_Axis1Ready := fbPower1.Status;
 HMI_Axis2Ready := fbPower2.Status;
 HMI_Axis3Ready := fbPower3.Status;
 HMI_Axis4Ready := fbPower4.Status;
+HMI_Axis5Ready := fbPower5.Status;
+HMI_Axis6Ready := fbPower6.Status;
 
 HMI_Axis1Error := fbPower1.Error;
 HMI_Axis2Error := fbPower2.Error;
 HMI_Axis3Error := fbPower3.Error;
 HMI_Axis4Error := fbPower4.Error;
+HMI_Axis5Error := fbPower5.Error;
+HMI_Axis6Error := fbPower6.Error;
 
+(* ── MC_MoveAbsolute ─────────────────────────────────────────── *)
+fbMove1(Axis := GVL_Axes.Axis1, Execute := HMI_MoveCmd1, Position := HMI_TargetPos1, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+IF fbMove1.Done OR fbMove1.Error THEN HMI_MoveCmd1 := FALSE; END_IF
+
+fbMove2(Axis := GVL_Axes.Axis2, Execute := HMI_MoveCmd2, Position := HMI_TargetPos2, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+IF fbMove2.Done OR fbMove2.Error THEN HMI_MoveCmd2 := FALSE; END_IF
+
+fbMove3(Axis := GVL_Axes.Axis3, Execute := HMI_MoveCmd3, Position := HMI_TargetPos3, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+IF fbMove3.Done OR fbMove3.Error THEN HMI_MoveCmd3 := FALSE; END_IF
+
+fbMove4(Axis := GVL_Axes.Axis4, Execute := HMI_MoveCmd4, Position := HMI_TargetPos4, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+IF fbMove4.Done OR fbMove4.Error THEN HMI_MoveCmd4 := FALSE; END_IF
+
+fbMove5(Axis := GVL_Axes.Axis5, Execute := HMI_MoveCmd5, Position := HMI_TargetPos5, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+IF fbMove5.Done OR fbMove5.Error THEN HMI_MoveCmd5 := FALSE; END_IF
+
+fbMove6(Axis := GVL_Axes.Axis6, Execute := HMI_MoveCmd6, Position := HMI_TargetPos6, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+IF fbMove6.Done OR fbMove6.Error THEN HMI_MoveCmd6 := FALSE; END_IF
+
+(* ── 實際位置回饋 ─────────────────────────────────────────────── *)
 HMI_ActPos1 := GVL_Axes.Axis1.NcToPlc.ActPos;
 HMI_ActPos2 := GVL_Axes.Axis2.NcToPlc.ActPos;
 HMI_ActPos3 := GVL_Axes.Axis3.NcToPlc.ActPos;
-HMI_ActPos4 := GVL_Axes.Axis4.NcToPlc.ActPos;]]></ST>
+HMI_ActPos4 := GVL_Axes.Axis4.NcToPlc.ActPos;
+HMI_ActPos5 := GVL_Axes.Axis5.NcToPlc.ActPos;
+HMI_ActPos6 := GVL_Axes.Axis6.NcToPlc.ActPos;]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
-      <LineId Id="242" Count="40" />
+      <LineId Id="757" Count="46" />
       <LineId Id="2" Count="0" />
     </LineIds>
   </POU>
