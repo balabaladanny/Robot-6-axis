@@ -53,9 +53,45 @@ VAR
     fbMove4          : MC_MoveAbsolute;
     fbMove5          : MC_MoveAbsolute;
     fbMove6          : MC_MoveAbsolute;
+	
+	(* Auto zero on startup *)
+    bSetZero         : BOOL := TRUE;   (* TRUE on first PLC run *)
+    fbSetPos1        : MC_SetPosition;
+    fbSetPos2        : MC_SetPosition;
+    fbSetPos3        : MC_SetPosition;
+    fbSetPos4        : MC_SetPosition;
+    fbSetPos5        : MC_SetPosition;
+    fbSetPos6        : MC_SetPosition;
+    bZeroDone        : BOOL := FALSE;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[(* ── MC_Power ─────────────────────────────────────────────────── *)
+      <ST><![CDATA[(* ── Auto zero: set all axes actual position to 0 on startup ───── *)
+IF HMI_PowerOn AND
+   HMI_Axis1Ready AND HMI_Axis2Ready AND HMI_Axis3Ready AND
+   HMI_Axis4Ready AND HMI_Axis5Ready AND HMI_Axis6Ready AND
+   bSetZero AND NOT bZeroDone THEN
+
+    fbSetPos1(Axis := GVL_Axes.Axis1, Execute := TRUE, Position := 0.0, Mode := FALSE);
+    fbSetPos2(Axis := GVL_Axes.Axis2, Execute := TRUE, Position := 0.0, Mode := FALSE);
+    fbSetPos3(Axis := GVL_Axes.Axis3, Execute := TRUE, Position := 0.0, Mode := FALSE);
+    fbSetPos4(Axis := GVL_Axes.Axis4, Execute := TRUE, Position := 0.0, Mode := FALSE);
+    fbSetPos5(Axis := GVL_Axes.Axis5, Execute := TRUE, Position := 0.0, Mode := FALSE);
+    fbSetPos6(Axis := GVL_Axes.Axis6, Execute := TRUE, Position := 0.0, Mode := FALSE);
+
+    IF fbSetPos1.Done AND fbSetPos2.Done AND fbSetPos3.Done AND
+       fbSetPos4.Done AND fbSetPos5.Done AND fbSetPos6.Done THEN
+        bSetZero  := FALSE;
+        bZeroDone := TRUE;
+        fbSetPos1(Axis := GVL_Axes.Axis1, Execute := FALSE, Position := 0.0, Mode := FALSE);
+        fbSetPos2(Axis := GVL_Axes.Axis2, Execute := FALSE, Position := 0.0, Mode := FALSE);
+        fbSetPos3(Axis := GVL_Axes.Axis3, Execute := FALSE, Position := 0.0, Mode := FALSE);
+        fbSetPos4(Axis := GVL_Axes.Axis4, Execute := FALSE, Position := 0.0, Mode := FALSE);
+        fbSetPos5(Axis := GVL_Axes.Axis5, Execute := FALSE, Position := 0.0, Mode := FALSE);
+        fbSetPos6(Axis := GVL_Axes.Axis6, Execute := FALSE, Position := 0.0, Mode := FALSE);
+    END_IF
+END_IF
+
+(* ── MC_Power ─────────────────────────────────────────────────── *)
 fbPower1(Axis := GVL_Axes.Axis1, Enable := HMI_PowerOn, Enable_Positive := HMI_PowerOn, Enable_Negative := HMI_PowerOn);
 fbPower2(Axis := GVL_Axes.Axis2, Enable := HMI_PowerOn, Enable_Positive := HMI_PowerOn, Enable_Negative := HMI_PowerOn);
 fbPower3(Axis := GVL_Axes.Axis3, Enable := HMI_PowerOn, Enable_Positive := HMI_PowerOn, Enable_Negative := HMI_PowerOn);
@@ -105,6 +141,9 @@ HMI_ActPos5 := GVL_Axes.Axis5.NcToPlc.ActPos;
 HMI_ActPos6 := GVL_Axes.Axis6.NcToPlc.ActPos;]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
+      <LineId Id="868" Count="0" />
+      <LineId Id="888" Count="22" />
+      <LineId Id="866" Count="1" />
       <LineId Id="757" Count="46" />
       <LineId Id="2" Count="0" />
     </LineIds>
