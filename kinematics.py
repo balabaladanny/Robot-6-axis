@@ -64,7 +64,7 @@ def forward_kinematics(joint_angles_deg):
 
 
 def _rot_to_euler_zyx(R):
-    """Rotation matrix to ZYX Euler angles (rad)."""
+    """Rotation matrix to ZYX Euler angles (rad). For display only."""
     sy = np.sqrt(R[0, 0]**2 + R[1, 0]**2)
     if sy > 1e-6:
         return np.array([
@@ -80,6 +80,45 @@ def _rot_to_euler_zyx(R):
         ])
 
 
+def _euler_zyx_to_rot(rz, ry, rx):
+    """ZYX Euler (rad) to rotation matrix."""
+    cz, sz = np.cos(rz), np.sin(rz)
+    cy, sy = np.cos(ry), np.sin(ry)
+    cx, sx = np.cos(rx), np.sin(rx)
+    Rz = np.array([[cz,-sz,0],[sz,cz,0],[0,0,1]])
+    Ry = np.array([[cy,0,sy],[0,1,0],[-sy,0,cy]])
+    Rx = np.array([[1,0,0],[0,cx,-sx],[0,sx,cx]])
+    return Rz @ Ry @ Rx
+
+
+def _rot_error_axis_angle(R_target, R_current):
+    """
+    Orientation error as axis-angle vector (rad).
+    Returns 3-vector: rotation needed to go from R_current to R_target.
+    Avoids Euler angle gimbal-lock issues for IK.
+    """
+    R_err = R_target @ R_current.T
+    cos_t = np.clip((np.trace(R_err) - 1.0) / 2.0, -1.0, 1.0)
+    theta = np.arccos(cos_t)
+    if theta < 1e-8:
+        return np.zeros(3)
+    sin_t = np.sin(theta)
+    if abs(sin_t) < 1e-8:
+        # 180-degree rotation - find principal axis
+        # Use diagonal to recover axis
+        diag = np.diag(R_err)
+        i = int(np.argmax(diag))
+        v = R_err[:, i] + np.eye(3)[:, i]
+        v = v / max(np.linalg.norm(v), 1e-12)
+        return theta * v
+    axis = np.array([
+        R_err[2, 1] - R_err[1, 2],
+        R_err[0, 2] - R_err[2, 0],
+        R_err[1, 0] - R_err[0, 1],
+    ]) / (2.0 * sin_t)
+    return theta * axis
+
+
 def get_end_effector_pose(joint_angles_deg):
     """
     Input:  joint_angles_deg - list of 6 joint angles (deg)
@@ -92,27 +131,36 @@ def get_end_effector_pose(joint_angles_deg):
     return position, euler_zyx
 
 
-def _jacobian(joint_angles_deg, delta=1e-4):
-    """Numerical Jacobian (6x6)."""
-    q   = np.array(joint_angles_deg, dtype=float)
+def _geometric_jacobian(joint_angles_deg, delta=0.01):
+    """
+    6x6 geometric Jacobian.
+    Top 3 rows: linear velocity (mm per deg of joint).
+    Bottom 3 rows: angular velocity in axis-angle form (rad per deg of joint).
+    """
+    q     = np.array(joint_angles_deg, dtype=float)
     T0, _ = forward_kinematics(q)
-    p0  = T0[:3, 3]
-    e0  = _rot_to_euler_zyx(T0[:3, :3])
-    J   = np.zeros((6, 6))
+    p0    = T0[:3, 3]
+    R0    = T0[:3, :3]
+    J     = np.zeros((6, 6))
     for i in range(6):
         dq     = q.copy()
-        dq[i] += np.rad2deg(delta)
+        dq[i] += delta
         Ti, _  = forward_kinematics(dq)
+        # Linear part
         J[:3, i] = (Ti[:3, 3] - p0) / delta
-        J[3:, i] = (_rot_to_euler_zyx(Ti[:3, :3]) - e0) / delta
+        # Angular part via axis-angle of R_new * R_old^T
+        R_new = Ti[:3, :3]
+        w     = _rot_error_axis_angle(R_new, R0)
+        J[3:, i] = w / delta
     return J
 
 
 def inverse_kinematics(target_pos, target_euler_zyx_deg,
-                        q_init_deg=None, max_iter=200,
-                        tol_pos=0.1, tol_rot=0.01):
+                        q_init_deg=None, max_iter=1000,
+                        tol_pos=0.1, tol_rot=0.5):
     """
-    Numerical IK using Damped Least Squares Jacobian pseudo-inverse.
+    Numerical IK using Damped Least Squares.
+    Uses axis-angle for orientation error to avoid gimbal lock.
     Input:  target_pos           - [x, y, z] mm
             target_euler_zyx_deg - [rz, ry, rx] deg
             q_init_deg           - initial joint angles (deg), default zeros
@@ -123,21 +171,29 @@ def inverse_kinematics(target_pos, target_euler_zyx_deg,
     if q_init_deg is None:
         q_init_deg = [0.0] * 6
 
-    q            = np.array(q_init_deg, dtype=float)
-    target_pos   = np.array(target_pos, dtype=float)
-    target_euler = np.deg2rad(np.array(target_euler_zyx_deg, dtype=float))
-    lam          = 0.5
-    pos_err = rot_err = 1e9
+    q = np.array(q_init_deg, dtype=float)
+
+    # Nudge away from singular zero pose
+    if np.allclose(q, 0.0):
+        q = q + 1.0
+
+    target_pos = np.array(target_pos, dtype=float)
+    rz, ry, rx = np.deg2rad(np.array(target_euler_zyx_deg, dtype=float))
+    R_target   = _euler_zyx_to_rot(rz, ry, rx)
+
+    lam      = 0.1
+    pos_err  = rot_err = 1e9
 
     for _ in range(max_iter):
         T_cur, _ = forward_kinematics(q)
         p_cur    = T_cur[:3, 3]
-        e_cur    = _rot_to_euler_zyx(T_cur[:3, :3])
+        R_cur    = T_cur[:3, :3]
 
         e_pos    = target_pos - p_cur
-        e_rot    = target_euler - e_cur
+        e_rot    = _rot_error_axis_angle(R_target, R_cur)
+
         pos_err  = float(np.linalg.norm(e_pos))
-        rot_err  = float(np.linalg.norm(np.rad2deg(e_rot)))
+        rot_err  = float(np.rad2deg(np.linalg.norm(e_rot)))
 
         if pos_err < tol_pos and rot_err < tol_rot:
             for i in range(6):
@@ -145,11 +201,23 @@ def inverse_kinematics(target_pos, target_euler_zyx_deg,
                 q[i] = np.clip(q[i], lo, hi)
             return q, True, (pos_err, rot_err)
 
-        e   = np.concatenate([e_pos, e_rot])
-        J   = _jacobian(q)
+        e = np.concatenate([e_pos, e_rot])
+        J = _geometric_jacobian(q)
+
+        # Damped least squares: dq_deg = J^T (J J^T + lam^2 I)^-1 e
         JJT = J @ J.T
-        dq  = J.T @ np.linalg.solve(JJT + lam**2 * np.eye(6), e)
-        q  += np.rad2deg(dq)
+        try:
+            dq_deg = J.T @ np.linalg.solve(JJT + lam**2 * np.eye(6), e)
+        except np.linalg.LinAlgError:
+            dq_deg = J.T @ np.linalg.lstsq(JJT + lam**2 * np.eye(6), e, rcond=None)[0]
+
+        # Limit step size to avoid overshooting past local minima
+        max_step = 10.0  # max degrees per joint per iteration
+        max_dq   = float(np.max(np.abs(dq_deg)))
+        if max_dq > max_step:
+            dq_deg = dq_deg * (max_step / max_dq)
+
+        q += dq_deg
 
         for i in range(6):
             lo, hi = JOINT_LIMITS[i]
@@ -164,7 +232,7 @@ def inverse_kinematics_multistart(target_pos, target_euler_zyx_deg,
     Multi-start IK to improve convergence.
     Tries given initial guess plus random restarts, returns best solution.
     """
-    best_q, best_success, best_err = None, False, (1e9, 1e9)
+    best_q, best_err = None, (1e9, 1e9)
     candidates = [q_init_deg] if q_init_deg is not None else [[0.0] * 6]
 
     rng = np.random.default_rng(42)

@@ -1464,7 +1464,7 @@ External Setpoint Generation:
 				<Axis Id="1" CreateSymbols="true" AxisType="1">
 					<Name>Axis 1</Name>
 					<AxisPara>
-						<General UnitName="°"/>
+						<General UnitName="Degree"/>
 						<OtherSettings AllowMotionCmdToSlave="true"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="19">
@@ -1605,7 +1605,7 @@ External Setpoint Generation:
 				<Axis Id="2" CreateSymbols="true" AxisType="1">
 					<Name>Axis 2</Name>
 					<AxisPara>
-						<General UnitName="°"/>
+						<General UnitName="Degree"/>
 						<OtherSettings AllowMotionCmdToSlave="true"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="19">
@@ -1746,7 +1746,7 @@ External Setpoint Generation:
 				<Axis Id="3" CreateSymbols="true" AxisType="1">
 					<Name>Axis 3</Name>
 					<AxisPara>
-						<General UnitName="°"/>
+						<General UnitName="Degree"/>
 						<OtherSettings AllowMotionCmdToSlave="true"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="19">
@@ -1887,7 +1887,7 @@ External Setpoint Generation:
 				<Axis Id="4" CreateSymbols="true" AxisType="1">
 					<Name>Axis 4</Name>
 					<AxisPara>
-						<General UnitName="°"/>
+						<General UnitName="Degree"/>
 						<OtherSettings AllowMotionCmdToSlave="true"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="19">
@@ -2028,7 +2028,7 @@ External Setpoint Generation:
 				<Axis Id="5" CreateSymbols="true" AxisType="1">
 					<Name>Axis 5</Name>
 					<AxisPara>
-						<General UnitName="°"/>
+						<General UnitName="Degree"/>
 						<OtherSettings AllowMotionCmdToSlave="true"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="19">
@@ -2169,7 +2169,7 @@ External Setpoint Generation:
 				<Axis Id="6" CreateSymbols="true" AxisType="1">
 					<Name>Axis 6</Name>
 					<AxisPara>
-						<General UnitName="°"/>
+						<General UnitName="Degree"/>
 						<OtherSettings AllowMotionCmdToSlave="true"/>
 					</AxisPara>
 					<Encoder Name="Enc" EncType="19">
@@ -2311,7 +2311,7 @@ External Setpoint Generation:
 		</Motion>
 		<Plc>
 			<Project GUID="{E71ACB26-A4B6-4ED0-B1A1-935C1FE39884}" Name="Untitled1" PrjFilePath="Untitled1\Untitled1.plcproj" TmcFilePath="Untitled1\Untitled1.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="Untitled1\Untitled1.tmc" TmcHash="{FDBB11EB-9B36-4689-148C-CB522F30F3EC}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="Untitled1\Untitled1.tmc" TmcHash="{57045B45-4B14-2C48-7C59-06E448FB396B}">
 					<Name>Untitled1 Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">

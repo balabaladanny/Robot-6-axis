@@ -4,6 +4,7 @@
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
     HMI_PowerOn      : BOOL := FALSE;
+    HMI_ResetCmd     : BOOL := FALSE;
 
     HMI_TargetPos1   : LREAL := 0;
     HMI_TargetPos2   : LREAL := 0;
@@ -53,42 +54,60 @@ VAR
     fbMove4          : MC_MoveAbsolute;
     fbMove5          : MC_MoveAbsolute;
     fbMove6          : MC_MoveAbsolute;
-	
-	(* Auto zero on startup *)
-    bSetZero         : BOOL := TRUE;   (* TRUE on first PLC run *)
+
+    fbReset1         : MC_Reset;
+    fbReset2         : MC_Reset;
+    fbReset3         : MC_Reset;
+    fbReset4         : MC_Reset;
+    fbReset5         : MC_Reset;
+    fbReset6         : MC_Reset;
+
+    (* Auto zero on startup *)
+    bSetZero         : BOOL := TRUE;
+    bZeroDone        : BOOL := FALSE;
+    bZeroTrigger     : BOOL := FALSE;
     fbSetPos1        : MC_SetPosition;
     fbSetPos2        : MC_SetPosition;
     fbSetPos3        : MC_SetPosition;
     fbSetPos4        : MC_SetPosition;
     fbSetPos5        : MC_SetPosition;
     fbSetPos6        : MC_SetPosition;
-    bZeroDone        : BOOL := FALSE;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[(* ── Auto zero: set all axes actual position to 0 on startup ───── *)
+      <ST><![CDATA[(* ── Reset axes when HMI_ResetCmd rising edge ─────────────────── *)
+fbReset1(Axis := GVL_Axes.Axis1, Execute := HMI_ResetCmd);
+fbReset2(Axis := GVL_Axes.Axis2, Execute := HMI_ResetCmd);
+fbReset3(Axis := GVL_Axes.Axis3, Execute := HMI_ResetCmd);
+fbReset4(Axis := GVL_Axes.Axis4, Execute := HMI_ResetCmd);
+fbReset5(Axis := GVL_Axes.Axis5, Execute := HMI_ResetCmd);
+fbReset6(Axis := GVL_Axes.Axis6, Execute := HMI_ResetCmd);
+
+IF fbReset1.Done OR fbReset2.Done OR fbReset3.Done OR
+   fbReset4.Done OR fbReset5.Done OR fbReset6.Done THEN
+    HMI_ResetCmd := FALSE;
+END_IF
+
+(* ── Auto zero: trigger once after Power On + all axes ready ─── *)
 IF HMI_PowerOn AND
    HMI_Axis1Ready AND HMI_Axis2Ready AND HMI_Axis3Ready AND
    HMI_Axis4Ready AND HMI_Axis5Ready AND HMI_Axis6Ready AND
-   bSetZero AND NOT bZeroDone THEN
+   bSetZero AND NOT bZeroDone AND NOT bZeroTrigger THEN
+    bZeroTrigger := TRUE;
+END_IF
 
-    fbSetPos1(Axis := GVL_Axes.Axis1, Execute := TRUE, Position := 0.0, Mode := FALSE);
-    fbSetPos2(Axis := GVL_Axes.Axis2, Execute := TRUE, Position := 0.0, Mode := FALSE);
-    fbSetPos3(Axis := GVL_Axes.Axis3, Execute := TRUE, Position := 0.0, Mode := FALSE);
-    fbSetPos4(Axis := GVL_Axes.Axis4, Execute := TRUE, Position := 0.0, Mode := FALSE);
-    fbSetPos5(Axis := GVL_Axes.Axis5, Execute := TRUE, Position := 0.0, Mode := FALSE);
-    fbSetPos6(Axis := GVL_Axes.Axis6, Execute := TRUE, Position := 0.0, Mode := FALSE);
+fbSetPos1(Axis := GVL_Axes.Axis1, Execute := bZeroTrigger, Position := 0.0, Mode := FALSE);
+fbSetPos2(Axis := GVL_Axes.Axis2, Execute := bZeroTrigger, Position := 0.0, Mode := FALSE);
+fbSetPos3(Axis := GVL_Axes.Axis3, Execute := bZeroTrigger, Position := 0.0, Mode := FALSE);
+fbSetPos4(Axis := GVL_Axes.Axis4, Execute := bZeroTrigger, Position := 0.0, Mode := FALSE);
+fbSetPos5(Axis := GVL_Axes.Axis5, Execute := bZeroTrigger, Position := 0.0, Mode := FALSE);
+fbSetPos6(Axis := GVL_Axes.Axis6, Execute := bZeroTrigger, Position := 0.0, Mode := FALSE);
 
-    IF fbSetPos1.Done AND fbSetPos2.Done AND fbSetPos3.Done AND
-       fbSetPos4.Done AND fbSetPos5.Done AND fbSetPos6.Done THEN
-        bSetZero  := FALSE;
-        bZeroDone := TRUE;
-        fbSetPos1(Axis := GVL_Axes.Axis1, Execute := FALSE, Position := 0.0, Mode := FALSE);
-        fbSetPos2(Axis := GVL_Axes.Axis2, Execute := FALSE, Position := 0.0, Mode := FALSE);
-        fbSetPos3(Axis := GVL_Axes.Axis3, Execute := FALSE, Position := 0.0, Mode := FALSE);
-        fbSetPos4(Axis := GVL_Axes.Axis4, Execute := FALSE, Position := 0.0, Mode := FALSE);
-        fbSetPos5(Axis := GVL_Axes.Axis5, Execute := FALSE, Position := 0.0, Mode := FALSE);
-        fbSetPos6(Axis := GVL_Axes.Axis6, Execute := FALSE, Position := 0.0, Mode := FALSE);
-    END_IF
+IF bZeroTrigger AND
+   fbSetPos1.Done AND fbSetPos2.Done AND fbSetPos3.Done AND
+   fbSetPos4.Done AND fbSetPos5.Done AND fbSetPos6.Done THEN
+    bZeroTrigger := FALSE;
+    bSetZero     := FALSE;
+    bZeroDone    := TRUE;
 END_IF
 
 (* ── MC_Power ─────────────────────────────────────────────────── *)
@@ -113,38 +132,36 @@ HMI_Axis4Error := fbPower4.Error;
 HMI_Axis5Error := fbPower5.Error;
 HMI_Axis6Error := fbPower6.Error;
 
-(* ── MC_MoveAbsolute ─────────────────────────────────────────── *)
-fbMove1(Axis := GVL_Axes.Axis1, Execute := HMI_MoveCmd1, Position := HMI_TargetPos1, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+(* ── MC_MoveAbsolute  Velocity 60 deg/s ──────────────────────── *)
+fbMove1(Axis := GVL_Axes.Axis1, Execute := HMI_MoveCmd1, Position := HMI_TargetPos1, Velocity := 60.0, Acceleration := 200.0, Deceleration := 200.0, Jerk := 0.0, BufferMode := MC_Aborting);
 IF fbMove1.Done OR fbMove1.Error THEN HMI_MoveCmd1 := FALSE; END_IF
 
-fbMove2(Axis := GVL_Axes.Axis2, Execute := HMI_MoveCmd2, Position := HMI_TargetPos2, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+fbMove2(Axis := GVL_Axes.Axis2, Execute := HMI_MoveCmd2, Position := HMI_TargetPos2, Velocity := 60.0, Acceleration := 200.0, Deceleration := 200.0, Jerk := 0.0, BufferMode := MC_Aborting);
 IF fbMove2.Done OR fbMove2.Error THEN HMI_MoveCmd2 := FALSE; END_IF
 
-fbMove3(Axis := GVL_Axes.Axis3, Execute := HMI_MoveCmd3, Position := HMI_TargetPos3, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+fbMove3(Axis := GVL_Axes.Axis3, Execute := HMI_MoveCmd3, Position := HMI_TargetPos3, Velocity := 60.0, Acceleration := 200.0, Deceleration := 200.0, Jerk := 0.0, BufferMode := MC_Aborting);
 IF fbMove3.Done OR fbMove3.Error THEN HMI_MoveCmd3 := FALSE; END_IF
 
-fbMove4(Axis := GVL_Axes.Axis4, Execute := HMI_MoveCmd4, Position := HMI_TargetPos4, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+fbMove4(Axis := GVL_Axes.Axis4, Execute := HMI_MoveCmd4, Position := HMI_TargetPos4, Velocity := 60.0, Acceleration := 200.0, Deceleration := 200.0, Jerk := 0.0, BufferMode := MC_Aborting);
 IF fbMove4.Done OR fbMove4.Error THEN HMI_MoveCmd4 := FALSE; END_IF
 
-fbMove5(Axis := GVL_Axes.Axis5, Execute := HMI_MoveCmd5, Position := HMI_TargetPos5, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+fbMove5(Axis := GVL_Axes.Axis5, Execute := HMI_MoveCmd5, Position := HMI_TargetPos5, Velocity := 60.0, Acceleration := 200.0, Deceleration := 200.0, Jerk := 0.0, BufferMode := MC_Aborting);
 IF fbMove5.Done OR fbMove5.Error THEN HMI_MoveCmd5 := FALSE; END_IF
 
-fbMove6(Axis := GVL_Axes.Axis6, Execute := HMI_MoveCmd6, Position := HMI_TargetPos6, Velocity := 10.0, Acceleration := 50.0, Deceleration := 50.0, Jerk := 0.0, BufferMode := MC_Aborting);
+fbMove6(Axis := GVL_Axes.Axis6, Execute := HMI_MoveCmd6, Position := HMI_TargetPos6, Velocity := 60.0, Acceleration := 200.0, Deceleration := 200.0, Jerk := 0.0, BufferMode := MC_Aborting);
 IF fbMove6.Done OR fbMove6.Error THEN HMI_MoveCmd6 := FALSE; END_IF
 
-(* ── 實際位置回饋 ─────────────────────────────────────────────── *)
+(* ── Actual position feedback ────────────────────────────────── *)
 HMI_ActPos1 := GVL_Axes.Axis1.NcToPlc.ActPos;
 HMI_ActPos2 := GVL_Axes.Axis2.NcToPlc.ActPos;
 HMI_ActPos3 := GVL_Axes.Axis3.NcToPlc.ActPos;
 HMI_ActPos4 := GVL_Axes.Axis4.NcToPlc.ActPos;
 HMI_ActPos5 := GVL_Axes.Axis5.NcToPlc.ActPos;
-HMI_ActPos6 := GVL_Axes.Axis6.NcToPlc.ActPos;]]></ST>
+HMI_ActPos6 := GVL_Axes.Axis6.NcToPlc.ActPos;
+]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
-      <LineId Id="868" Count="0" />
-      <LineId Id="888" Count="22" />
-      <LineId Id="866" Count="1" />
-      <LineId Id="757" Count="46" />
+      <LineId Id="1044" Count="83" />
       <LineId Id="2" Count="0" />
     </LineIds>
   </POU>
